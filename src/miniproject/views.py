@@ -74,13 +74,15 @@ def resume_view(data: pd.DataFrame) -> None:
     nulls_total = utils.br_number(info.get('null_values_total', 0) * -1, decimals=0)
     pct_nulls = utils.br_number(info.get('pct_nulls', 0) * -1, decimals=2, pct=True)
     data_types = info.get('data_types', {})
+    min_date = info.get('min_date', None)
+    max_date = info.get('max_date', None)
 
     text_summary = (
         f'[bold]Colunas: [positive]{columns}[/positive]\t'
         f'Registros: {registers_no_duplicates} / {registers}\t'
         f'Duplicados: {duplicates} / {pct_duplicates}\t'
         f'Nulos: {nulls_total} / {pct_nulls}[/bold]\n\n'
-        f'A base de dados possui [positive]13[/positive] colunas sendo [negative]3[/negative] removidas por estarem vazias resultando em [positive]{columns}[/positive] colunas válidas, possui [positive]{registers_no_duplicates}[/positive] registros válidos sendo removidos {duplicates} registros duplicados, possui {nulls_total} valores nulos.'
+        f'A base de dados possui [positive]13[/positive] colunas sendo [negative]3[/negative] removidas por estarem vazias resultando em [positive]{columns}[/positive] colunas válidas, possui [positive]{registers_no_duplicates}[/positive] registros válidos, foram removidos {duplicates} registros duplicados e {nulls_total} valores nulos. Janela de dados [positive]{min_date}[/positive] -> [positive]{max_date}[/positive]. Optou-se por remover os valores nulos de produtos e categorias que eram relevantes para a análise, garantindo a integridade dos dados restantes.'
     )
 
     title = '[title]\tResumo dos Dados\t[/title]'
@@ -93,7 +95,8 @@ def resume_view(data: pd.DataFrame) -> None:
             safe_box=True,
             width=120,
             padding=(1, 3),
-        )
+        ),
+        justify='full',
     )
     # Print table rich console for nulls and data types
     table = Table(
