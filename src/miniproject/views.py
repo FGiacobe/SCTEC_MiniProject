@@ -7,19 +7,8 @@ from packages.miniproject.src.miniproject import extract, utils
 from packages.miniproject.src.miniproject import use_case as uc
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from rich.theme import Theme
 
-theme = Theme(
-    {
-        'title': 'bold white on slate_blue3',
-        'header': 'bold slate_blue3',
-        'column': 'bold steel_blue',
-        'positive': 'deep_sky_blue1',
-        'negative': 'red3',
-    }
-)
-console = Console(theme=theme)
+console = Console(theme=config.THEME)
 
 
 def status_view(process: list[str]):
@@ -70,10 +59,9 @@ def resume_view(data: pd.DataFrame) -> None:
     registers_no_duplicates = utils.br_number(info.get('drop_duplicates', 0), decimals=0)
     duplicates = utils.br_number(info.get('duplicates', 0) * -1, decimals=0)
     pct_duplicates = utils.br_number(info.get('pct_duplicates', 0) * -1, decimals=2, pct=True)
-    nulls = info.get('null_values', {})
     nulls_total = utils.br_number(info.get('null_values_total', 0) * -1, decimals=0)
     pct_nulls = utils.br_number(info.get('pct_nulls', 0) * -1, decimals=2, pct=True)
-    data_types = info.get('data_types', {})
+    types_nulls = info.get('types_nulls', pd.DataFrame())
     min_date = info.get('min_date', None)
     max_date = info.get('max_date', None)
 
@@ -99,24 +87,8 @@ def resume_view(data: pd.DataFrame) -> None:
         justify='full',
     )
     # Print table rich console for nulls and data types
-    table = Table(
-        title='Valores Ausentes e Tipos de Dados',
-        header_style='header',
-        safe_box=True,
-        min_width=120,
-        title_style='title',
-        show_lines=True,
-    )
-    table.add_column('Variavel', style='column')
-    table.add_column('Tipo de Dado', justify='left')
-    table.add_column('Valores Ausentes', justify='left')
-    for col, value in dict(nulls).items():
-        table.add_row(
-            f'[bold]{str(col).upper()}[/bold]',
-            f'[positive]{data_types[col]}[/positive]',
-            f'{utils.br_number(value * -1, decimals=0)}',
-        )
-    console.print(table)
+    cols = ['Atributo', 'Tipo de Dado', 'Nulos']
+    utils.print_table(data=types_nulls, title='Valores Ausentes e Tipos de Dados', columns=cols)
 
 
 def shopping_by_gender_view(data: pd.DataFrame) -> None:
@@ -133,10 +105,16 @@ def shopping_by_gender_view(data: pd.DataFrame) -> None:
     )
     female: int = cast(int, shopping_by_gender.loc['F', 'genero'])
     male: int = cast(int, shopping_by_gender.loc['M', 'genero'])
+    total: int = female + male
+    pct_female: float = female / total * 100
+    pct_male: float = male / total * 100
     pct_diff: str = utils.br_number((female - male) / ((female + male) / 2) * 100, 2, True)
 
     title = '[title]\tResumo de Compras por Gênero\t[/title]'
-    text_summary = f'A análise de compras por gênero mostra a distribuição de compras entre clientes do sexo feminino com {utils.br_number(female, 0)} compras e o masculino com {utils.br_number(male, 0)} compras. Sendo o feminino predominante com uma diferença percentual de {pct_diff}. Com isso, podemos observar a tendência de maior participação feminina nas compras podendo influenciar estratégias de marketing e estoque. Por outro lado seria importante considerar ações para engajar o público masculino e equilibrar a participação nas compras.'
+    text_summary = f"""[bold]Comparas por gênero:[/bold]
+    [bold]- Feminino\t:[/bold] [positive]{'░' * int(pct_female)} {pct_female:.2f}%[/positive]
+    [bold]- Masculino\t:[/bold] [positive]{'░' * int(pct_male)} {pct_male:.2f}%[/positive]
+    A análise de compras por gênero mostra a distribuição de compras entre clientes do sexo feminino com {utils.br_number(female, 0)} compras e o masculino com {utils.br_number(male, 0)} compras. Sendo o feminino predominante com uma diferença percentual simétrica de {pct_diff}. Com isso, podemos observar a tendência de maior participação feminina nas compras podendo influenciar estratégias de marketing e estoque. Por outro lado seria importante considerar ações para engajar o público masculino e equilibrar a participação nas compras."""
 
     console.print(
         Panel(
@@ -152,7 +130,7 @@ def shopping_by_gender_view(data: pd.DataFrame) -> None:
 
 def run(data: pd.DataFrame) -> None:
 
-    process = ['Resumo dos dados', 'Dados de compras por gênero']
+    # process = ['Resumo dos dados', 'Dados de compras por gênero']
 
     # status_view(process)
     resume_view(data)
