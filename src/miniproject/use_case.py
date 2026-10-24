@@ -1,9 +1,14 @@
+"""Use case functions for data processing and analysis."""
+
 from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
 from packages.miniproject.src import config
-from packages.miniproject.src.miniproject import extract
+from packages.miniproject.src.miniproject import extract, utils
+from rich.console import Console
+
+console = Console()
 
 
 def remove_duplicates(data: pd.DataFrame) -> pd.DataFrame:
@@ -52,7 +57,13 @@ def get_data_info(data: pd.DataFrame) -> dict[str, Any]:
     non_duplicates = total_registers - (duplicates + null_values_total)
     pct_duplicates = duplicates / total_registers * 100
     pct_nulls = null_values_total / total_registers * 100
-    data_types = dict(data.dtypes)
+    types_nulls = pd.DataFrame(
+        {
+            'Atributo': list(null_values.index),
+            'Tipo de Dado': [data.dtypes[col] for col in null_values.index],
+            'Nulos': list(null_values),
+        }
+    )
 
     return {
         'registers': total_registers,
@@ -65,7 +76,7 @@ def get_data_info(data: pd.DataFrame) -> dict[str, Any]:
         'pct_nulls': pct_nulls,
         'min_date': min_date,
         'max_date': max_date,
-        'data_types': data_types,
+        'types_nulls': types_nulls,
     }
 
 
@@ -132,33 +143,43 @@ def top_n(data: pd.DataFrame, column: str, filter: str | None = None, n: int = 3
     return data.get(column, pd.Series()).sort_values(ascending=False).head(n)
 
 
-def get_occurrencies_by_month(data: pd.DataFrame, column: str, year: int) -> dict[int, int]:
+def get_occurrencies_by_period(data: pd.DataFrame, column: str, year: int | None = None) -> pd.DataFrame:
     """Get the volume of products by month for a specific year.
 
     Args:
         data (pd.DataFrame): The input DataFrame.
-        year (int): The year to filter by.
+        year (int | None, optional): The year to filter by. Defaults to None.
         column (str): The column to count occurrences for.
 
     Returns:
-        dict[int, int]: The volume of products by month for the specified year.
+        pd.DataFrame: The volume of products by month for the specified year.
     """
-    volume_by_month = group_by_columns(data, group_columns=['data'], agg_column=column, agg_func='count').reset_index()
-    volume_by_month = volume_by_month.assign(
-        ano=pd.to_datetime(volume_by_month['data']).dt.year, mes=pd.to_datetime(volume_by_month['data']).dt.month
+    occurrencies_by_period = group_by_columns(data, group_columns=['data'], agg_column=column, agg_func='count')
+    occurrencies_by_period = occurrencies_by_period.assign(
+        Ano=pd.to_datetime(occurrencies_by_period.index).year,
+        Ordem=pd.to_datetime(occurrencies_by_period.index).month,
+        Mes=pd.to_datetime(occurrencies_by_period.index).month_name(locale='pt_BR').str[:3],
     )
-    volume_by_month = volume_by_month.query('ano == @year')
-    volume_by_month = volume_by_month.groupby(['mes']).agg({column: 'sum'}).to_dict()
-    volume_by_month = volume_by_month[column]
-    return volume_by_month
+    if year is None:
+        occurrencies_by_period = occurrencies_by_period.groupby(['Ano']).agg({column: 'sum'}).reset_index()
+    else:
+        occurrencies_by_period = occurrencies_by_period.query('Ano == @year')
+        occurrencies_by_period = occurrencies_by_period.groupby(['Ordem', 'Mes']).agg({column: 'sum'}).reset_index()
+
+    occurrencies_total: float = occurrencies_by_period[column].sum()
+    occurrencies_by_period['Grafico'] = occurrencies_by_period[column] / occurrencies_total * 100
+    occurrencies_by_period['Dif_Pct'] = occurrencies_by_period[column].pct_change() * 100
+    occurrencies_by_period.fillna({'Dif_Pct': 0}, inplace=True)
+
+    return occurrencies_by_period
 
 
-def get_ocurrences(data: pd.DataFrame) -> dict[str, pd.Series | dict[int, int]]:
+def get_ocurrences(data: pd.DataFrame, column: str, year: int) -> dict[str, pd.Series | pd.DataFrame]:
 
-    occurrences: dict[str, pd.Series | dict[int, int]] = {
-        'top_n_products_by_female': top_n(data, column='produto', filter='F', n=3),
-        'top_n_products_by_male': top_n(data, column='produto', filter='M', n=3),
-        'products_by_month': get_occurrencies_by_month(data, column='produto', year=2020),
+    occurrences: dict[str, pd.Series | pd.DataFrame] = {
+        'top_three_attributes_by_female': top_n(data, column=column, filter='F', n=3),
+        'top_three_attributes_by_male': top_n(data, column=column, filter='M', n=3),
+        'attributes_by_period': get_occurrencies_by_period(data, column=column, year=year),
     }
     return occurrences
 
@@ -171,20 +192,15 @@ def run() -> pd.DataFrame:
 
 if __name__ == '__main__':
     df = run()
-    # product_by_gender = group_by_columns(df, group_columns=['genero', 'categoria'], agg_column='data', agg_func='count')
-    # print(product_by_gender)
 
-    # Como o volume de compras varia ao longo do tempo — por mês/ano.
-    # sales_over_time = (
-    #     group_by_columns(df, group_columns=['data'], agg_column='categoria', agg_func='count')
-    #     .reset_index()
-    #     .assign(ano=sales_over_time['data'].dt.year, mes=sales_over_time['data'].dt.month)
-    #     .query('ano == 2020')
-    # )
-    # sales_over_time['ano'] = pd.to_datetime(sales_over_time['data']).dt.year
-    # sales_over_time['mes'] = pd.to_datetime(sales_over_time['data']).dt.month
-    # print(sales_over_time[sales_over_time['ano'] == 2020].groupby(['ano', 'mes']).agg({'produto': 'sum'}))
+    occurrences_by_product = get_occurrencies_by_period(df, column='produto', year=2020)
+    occurrences_by_product.dtypes
+    occurrences_by_category = get_occurrencies_by_period(df, column='categoria', year=2022)
 
-    volume_by_product = get_occurrencies_by_month(df, column='produto', year=2020)
-    for mes, produto in volume_by_product.items():
-        print({'mes': mes, 'produto': produto})
+    info = get_data_info(df)
+    info.get('null_values')
+    nulls_df = info.get('types_nulls', pd.DataFrame())
+
+    utils.print_table(
+        data=nulls_df, title='Valores Ausentes e Tipos de Dados', columns=['Atributo', 'Tipo de Dado', 'Nulos']
+    )
