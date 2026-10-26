@@ -174,19 +174,74 @@ def get_occurrencies_by_period(data: pd.DataFrame, column: str, year: int | None
     return occurrencies_by_period
 
 
-def get_ocurrences(data: pd.DataFrame, column: str, year: int) -> dict[str, pd.Series | pd.DataFrame]:
+def get_ocurrences_by_gender(data: pd.DataFrame, column: str, year: int, n: int) -> dict[str, pd.Series | pd.DataFrame]:
+    """Get the top occurrences by gender for a specific column and year.
 
+    Args:
+        data (pd.DataFrame): The input DataFrame.
+        column (str): The column to analyze.
+        year (int): The year to filter by.
+        n (int): The number of top occurrences to return.
+
+    Returns:
+        dict[str, pd.Series | pd.DataFrame]: A dictionary containing the top occurrences by gender.
+
+    Raises:
+        ValueError: If the specified column is not found in the DataFrame.
+    """
+    if column not in data.columns:
+        raise ValueError(f"A Coluna '{column}' não foi encontrada no DataFrame.")
+    else:
+        column = column.lower()
+
+    if column == 'estado_civil':
+        # Substituir os valores numéricos por rótulos de estado civil
+        data[column] = data[column].map(
+            {'1': 'Casado(a)', '2': 'Divorciado(a)', '3': 'Separado(a)', '4': 'Solteiro(a)', '5': 'Viúvo(a)'}
+        )
+    female_top = (
+        data.query('genero == "F"')
+        .groupby(by=[column])
+        .size()
+        .sort_values(ascending=False)
+        .head(n)
+        .reset_index(name='Total')
+    )
+    male_top = (
+        data.query('genero == "M"')
+        .groupby(by=[column])
+        .size()
+        .sort_values(ascending=False)
+        .head(n)
+        .reset_index(name='Total')
+    )
     occurrences: dict[str, pd.Series | pd.DataFrame] = {
-        'top_three_attributes_by_female': top_n(data, column=column, filter='F', n=3),
-        'top_three_attributes_by_male': top_n(data, column=column, filter='M', n=3),
-        'attributes_by_period': get_occurrencies_by_period(data, column=column, year=year),
+        f'top_n_{column}_por_genero_feminino': female_top,
+        f'top_n_{column}_por_genero_masculino': male_top,
     }
     return occurrences
 
 
+def export_clean_data(df: pd.DataFrame) -> None:
+    """Export the cleaned DataFrame to a CSV file."""
+    file_name = 'cleaned_data.csv'
+    file_path = config.PROCESSED_DATA_DIR / file_name
+
+    df.to_csv(file_path, index=False)
+    console.print(
+        f'[bold green]Dados limpos exportados com sucesso para "{file_path.relative_to(config.BASE_DIR)}".[/bold green]'
+    )
+
+
 def run() -> pd.DataFrame:
+    """Run the main data extraction and cleaning workflow.
+
+    Returns:
+        pd.DataFrame: The cleaned DataFrame.
+    """
     df = extract.extract_raw_data(file_name='base_varejo.csv', columns=config.SELECTED_COLUMNS)
     df = remove_duplicates(df)
+    df = remove_null_values(df, subset=['produto', 'categoria'])
     return df
 
 
@@ -197,10 +252,13 @@ if __name__ == '__main__':
     occurrences_by_product.dtypes
     occurrences_by_category = get_occurrencies_by_period(df, column='categoria', year=2022)
 
-    info = get_data_info(df)
-    info.get('null_values')
-    nulls_df = info.get('types_nulls', pd.DataFrame())
+    info = get_ocurrences_by_gender(df, column='estado_civil', year=2020, n=5)
 
-    utils.print_table(
-        data=nulls_df, title='Valores Ausentes e Tipos de Dados', columns=['Atributo', 'Tipo de Dado', 'Nulos']
-    )
+    for key, value in info.items():
+        utils.print_table(
+            data=value,
+            title=f'{key.replace("_", " ").title()}',
+            columns=value.columns.tolist()
+            if isinstance(value, pd.DataFrame)
+            else pd.DataFrame([value]).columns.tolist(),
+        )

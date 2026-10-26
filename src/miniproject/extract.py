@@ -10,7 +10,7 @@ def extract_raw_data(file_name: str, columns: dict[str, tuple[str, ...]]) -> pd.
     """Extract raw data from a CSV file and return it as a pandas DataFrame.
 
     Args:
-        file_name (str): The name of the CSV file to extract.
+        file_name (str): The name of the CSV file to extract in the raw data directory.
         columns (dict[str, tuple[str, ...]]): A dictionary mapping column keys to their names and types.
 
     Returns:
@@ -37,5 +37,5 @@ def extract_raw_data(file_name: str, columns: dict[str, tuple[str, ...]]) -> pd.
 
 if __name__ == '__main__':
     df_test = extract_raw_data(file_name='base_varejo.csv', columns=config.SELECTED_COLUMNS)
-    print(df_test.head())
-    print(df_test.isnull().sum())
+    # print(df_test)
+    # print(df_test.isnull().sum())

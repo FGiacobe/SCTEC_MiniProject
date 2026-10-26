@@ -82,7 +82,7 @@ def format_tables(col: str, value: str | float | int) -> str:
     return str(value).strip().title()
 
 
-def print_table(data: pd.DataFrame, title: str, columns: list[str]):
+def print_table(data: pd.DataFrame | pd.Series, title: str, columns: list[str]):
     """Print a formatted table with the given title and columns.
 
     Args:
