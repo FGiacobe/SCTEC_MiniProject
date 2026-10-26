@@ -5,7 +5,7 @@ from typing import Any
 
 import pandas as pd
 from packages.miniproject.src import config
-from packages.miniproject.src.miniproject import extract, utils
+from packages.miniproject.src.miniproject import extract
 from rich.console import Console
 
 console = Console()
@@ -78,27 +78,6 @@ def get_data_info(data: pd.DataFrame) -> dict[str, Any]:
         'max_date': max_date,
         'types_nulls': types_nulls,
     }
-
-
-def get_statistical_summary(data: pd.DataFrame, column: str) -> dict[str, int | float]:
-    """Get statistical summary for a specific column in the DataFrame.
-
-    Args:
-        data (pd.DataFrame): The input DataFrame.
-        column (str): The column to summarize.
-
-    Returns:
-        dict[str, int | float]: A dictionary containing statistical summary.
-    """
-    statistics: dict[str, int | float] = {
-        'count': int(data[column].count()),
-        'mean': round(float(data[column].mean()), 2),
-        'median': round(float(data[column].median()), 2),
-        'std': round(float(data[column].std()), 2),
-        'min': int(data[column].min()),
-        'max': int(data[column].max()),
-    }
-    return statistics
 
 
 def group_by_columns(
@@ -222,6 +201,48 @@ def get_ocurrences_by_gender(data: pd.DataFrame, column: str, year: int, n: int)
     return occurrences
 
 
+def get_statistical_summary(data: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Get descriptive statistics for a numeric DataFrame column.
+
+    Args:
+        data (pd.DataFrame): The input DataFrame.
+        column (str): The column to analyze.
+
+    Returns:
+        pd.DataFrame: A one-row DataFrame with count, mean, median, standard
+            deviation, mode, minimum, quartiles, and maximum.
+
+    Raises:
+        ValueError: If the specified column is not found in the DataFrame.
+        ValueError: If the column is not numeric or contains no valid values.
+    """
+    if column not in data.columns:
+        raise ValueError(f"A Coluna '{column}' não foi encontrada no DataFrame.")
+
+    values = data[column]
+    if not pd.api.types.is_numeric_dtype(values):
+        return values.describe().to_frame().T
+
+    values = values.dropna()
+    if values.empty:
+        raise ValueError(f"A Coluna '{column}' não possui valores numéricos válidos.")
+
+    modes: list[object] = values.mode().tolist()
+    statistics: dict[str, object] = {
+        'Contagem': values.count(),
+        'Média': values.mean(),
+        'Mediana': values.median(),
+        'Desvio padrão': values.std(),
+        'Moda': modes,
+        'Mínimo': values.min(),
+        'Q1 (25%)': values.quantile(0.25),
+        'Q2 (50%)': values.quantile(0.50),
+        'Q3 (75%)': values.quantile(0.75),
+        'Máximo': values.max(),
+    }
+    return pd.DataFrame([statistics])
+
+
 def export_clean_data(df: pd.DataFrame) -> None:
     """Export the cleaned DataFrame to a CSV file."""
     file_name = 'cleaned_data.csv'
@@ -243,22 +264,3 @@ def run() -> pd.DataFrame:
     df = remove_duplicates(df)
     df = remove_null_values(df, subset=['produto', 'categoria'])
     return df
-
-
-if __name__ == '__main__':
-    df = run()
-
-    occurrences_by_product = get_occurrencies_by_period(df, column='produto', year=2020)
-    occurrences_by_product.dtypes
-    occurrences_by_category = get_occurrencies_by_period(df, column='categoria', year=2022)
-
-    info = get_ocurrences_by_gender(df, column='estado_civil', year=2020, n=5)
-
-    for key, value in info.items():
-        utils.print_table(
-            data=value,
-            title=f'{key.replace("_", " ").title()}',
-            columns=value.columns.tolist()
-            if isinstance(value, pd.DataFrame)
-            else pd.DataFrame([value]).columns.tolist(),
-        )

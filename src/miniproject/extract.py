@@ -37,5 +37,3 @@ def extract_raw_data(file_name: str, columns: dict[str, tuple[str, ...]]) -> pd.
 
 if __name__ == '__main__':
     df_test = extract_raw_data(file_name='base_varejo.csv', columns=config.SELECTED_COLUMNS)
-    # print(df_test)
-    # print(df_test.isnull().sum())

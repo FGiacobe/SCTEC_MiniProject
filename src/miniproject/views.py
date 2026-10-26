@@ -1,11 +1,13 @@
+"""Views for displaying data processing and analysis results."""
+
 from collections.abc import Callable
 from time import sleep
 from typing import cast
 
 import pandas as pd
 from packages.miniproject.src import config
-from packages.miniproject.src.miniproject import extract, utils
 from packages.miniproject.src.miniproject import use_case as uc
+from packages.miniproject.src.miniproject import utils
 from rich.console import Console
 from rich.panel import Panel
 
@@ -168,6 +170,21 @@ def occurrences_by_period_view(data: pd.DataFrame, column: str, year: int) -> No
     utils.print_table(data=occurrences, title=title, columns=occurrences.columns.tolist())
 
 
+def statistical_by_column_view(data: pd.DataFrame, column: str) -> None:
+    """Display a statistical summary for a specific column.
+
+    Args:
+        data (pd.DataFrame): The input DataFrame containing shopping data.
+        column (str): The column to analyze.
+    """
+    statistical_summary = uc.get_statistical_summary(data, column=column)
+    utils.print_table(
+        data=statistical_summary,
+        title=f'Estatísticas para {column}',
+        columns=statistical_summary.columns.tolist(),
+    )
+
+
 def run(data: pd.DataFrame) -> None:
     """Run the main analysis workflow."""
     df_clean = status_view(data)
@@ -183,12 +200,17 @@ def run(data: pd.DataFrame) -> None:
         year = int(input('Informe o ano: '))
         occurrences_by_period_view(df_clean, column=column, year=year)
 
+    def run_statistical_by_column() -> None:
+        column = input(f'Informe a coluna para análise {data.columns.tolist()}: ')
+        statistical_by_column_view(df_clean, column=column)
+
     options: dict[str, Callable[[], None]] = {
         '1': lambda: resume_view(data),
         '2': lambda: shopping_by_gender_view(df_clean),
         '3': run_occurrences_by_gender,
         '4': run_occurrences_by_period,
-        '5': lambda: uc.export_clean_data(df_clean),
+        '5': run_statistical_by_column,
+        '6': lambda: uc.export_clean_data(df_clean),
     }
 
     while True:
@@ -198,13 +220,14 @@ def run(data: pd.DataFrame) -> None:
             2. Dados de compras por gênero
             3. Ocorrências por gênero
             4. Ocorrências por ano
-            5. Exportar dados limpos (csv)
-            6. Sair
+            5. Estatísticas por coluna
+            6. Exportar dados limpos (csv)
+            7. Sair
             """
         )
         option = input('Escolha uma opção: ')
 
-        if option == '6':
+        if option == '7':
             console.print('[bold green]Encerrando as análises.[/bold green]')
             break
         if option not in options:
@@ -213,9 +236,3 @@ def run(data: pd.DataFrame) -> None:
 
         options[option]()
         console.print('[bold green]✅ Análise carregada com sucesso![/bold green]')
-
-
-if __name__ == '__main__':
-    df = extract.extract_raw_data(file_name='base_varejo.csv', columns=config.SELECTED_COLUMNS)
-
-    run(df)

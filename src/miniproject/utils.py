@@ -103,11 +103,3 @@ def print_table(data: pd.DataFrame | pd.Series, title: str, columns: list[str]):
     for _, row in data.iterrows():
         table.add_row(*[format_tables(col, row[col]) for col in columns])
     console.print(table)
-
-
-if __name__ == '__main__':
-    # Test the utility functions
-    print(pos_neg_view(10850.45))
-    print(pos_neg_view(-5))
-    print(br_number(1234567.89))
-    print(br_number(-1234567.89))
