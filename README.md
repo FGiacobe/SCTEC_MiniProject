@@ -100,12 +100,3 @@ identificação, mas reduz a quantidade de dados disponível e pode introduzir
 viés se as ausências não forem aleatórias. Por isso, os dados brutos devem ser
 preservados e as regras de tratamento documentadas.
 
-## Limitações e próximos passos
-
-- O critério do enunciado sobre categorias vazias pede preenchimento com
-  `"Sem Categoria"`; o fluxo atual remove essas linhas. A regra deve ser
-  confirmada e ajustada, se necessário, antes da entrega.
-
-- Para a entrega, confira o acesso público ao repositório, crie também o
-  arquivo `README_NomeDoAluno_Turma.md` solicitado no enunciado e submeta o
-  link do repositório no AVA.
