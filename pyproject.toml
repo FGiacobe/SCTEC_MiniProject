@@ -3,14 +3,21 @@ name = "miniproject"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Fabio Giacobe", email = "fabiogiacobe@gmail.com" }
-]
+authors = [{ name = "Fabio Giacobe", email = "fabiogiacobe@gmail.com" }]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = ["pandas>=3.0.6", "rich>=15.0.0"]
 
 [project.scripts]
-miniproject = "miniproject:main"
+miniproject = "miniproject.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["./src/miniproject"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.pyright]
+extends = "../../pyproject.toml"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

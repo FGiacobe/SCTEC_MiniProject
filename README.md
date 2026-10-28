@@ -37,15 +37,21 @@ As colunas usadas são:
 ## Requisitos e execução
 
 - Python 3.14 ou superior.
+- Recomendo o uso do gerenciador de pacotes e ambientes virtuais (uv)[https://docs.astral.sh/uv/#installation]
 - Dependências: pandas e Rich, listadas em `requirements.txt`.
 - O arquivo de entrada `data/raw/base_varejo.csv`.
 
 No terminal, a partir da raiz do repositório, instale as dependências e execute
 o aplicativo:
-
+Usando `pip`:
 ```bash
 python -m pip install -r packages/miniproject/requirements.txt
 python -m packages.miniproject.main
+```
+
+Usando `uv`:
+```bash
+uv run --all-packages miniproject
 ```
 
 O programa prepara os dados e apresenta um menu interativo. Use as opções para
